@@ -62,10 +62,7 @@ cachegrind.out.*
 *.key
 secrets/
 
-# Test artifacts
-test_archives/*.rar
-test_archives/*.7z
-test_archives/*.zip
+# Test artifacts (keep test fixtures, ignore generated content)
 test_archives/content.txt
 test_archives/extracted/
 *.tmp
