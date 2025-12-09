@@ -1,0 +1,154 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: pack-recover
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: false
+          body: |
+            ## Installation
+
+            ### Quick Install (Linux/macOS)
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/thatjuan/pack-recover/main/install.sh | sh
+            ```
+
+            ### Manual Download
+            Download the appropriate binary for your platform below.
+
+            ### From Source
+            ```bash
+            cargo install --git https://github.com/thatjuan/pack-recover.git --tag ${{ steps.get_version.outputs.version }}
+            ```
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+            cross: true
+
+          # macOS
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+
+          # Windows
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools
+        if: matrix.cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build (cross)
+        if: matrix.cross
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build (native)
+        if: ${{ !matrix.cross }}
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../${{ env.BINARY_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz ${{ env.BINARY_NAME }}
+          cd ../../..
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          cd target/${{ matrix.target }}/release
+          7z a ../../../${{ env.BINARY_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip ${{ env.BINARY_NAME }}.exe
+          cd ../../..
+
+      - name: Upload Release Asset (Unix)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ env.BINARY_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz
+          asset_name: ${{ env.BINARY_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Release Asset (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ env.BINARY_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip
+          asset_name: ${{ env.BINARY_NAME }}-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip
+          asset_content_type: application/zip
+
+  # Update Homebrew formula (optional - requires separate repo)
+  # homebrew:
+  #   name: Update Homebrew
+  #   needs: [create-release, build]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Update Homebrew formula
+  #       uses: mislav/bump-homebrew-formula-action@v3
+  #       with:
+  #         formula-name: pack-recover
+  #         homebrew-tap: thatjuan/homebrew-tap
+  #       env:
+  #         COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
