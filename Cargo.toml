@@ -1,0 +1,27 @@
+[package]
+name = "pack-recover"
+version = "0.1.0"
+edition = "2021"
+description = "A fast, parallel archive password recovery tool supporting multiple formats (RAR, 7zip, and ZIP)"
+authors = ["RAR Recovery Tool"]
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+rayon = "1.10"
+indicatif = { version = "0.17", features = ["rayon"] }
+anyhow = "1"
+crossbeam-channel = "0.5"
+num_cpus = "1.16"
+console = "0.15"
+glob = "0.3"
+unrar = "0.5"
+sevenz-rust = { version = "0.6", features = ["aes256"] }
+zip = { version = "2.2", features = ["aes-crypto"] }
+
+[dev-dependencies]
+tempfile = "3.8"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

@@ -1,0 +1,10 @@
+password
+12345
+secret
+qwerty
+testpass123
+wrongpassword1
+wrongpassword2
+wrongpassword3
+admin
+letmein

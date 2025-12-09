@@ -1,0 +1,107 @@
+# Build output
+/target/
+debug/
+release/
+
+# Cargo lock file - typically included for binaries, excluded for libraries
+# Cargo.lock
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Debug files
+*.pdb
+*.dSYM/
+*.dSYM
+
+# Rust-specific
+**/*.rs.bk
+*.rlib
+
+# Generated documentation
+/doc/
+target/doc/
+
+# Coverage reports
+*.gcno
+*.gcda
+*.profraw
+*.profdata
+lcov.info
+tarpaulin-report.html
+coverage/
+
+# Benchmarking artifacts
+criterion/
+perf.data
+perf.data.old
+flamegraph.svg
+cachegrind.out.*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Test artifacts
+test_archives/*.rar
+test_archives/*.7z
+test_archives/*.zip
+test_archives/content.txt
+test_archives/extracted/
+*.tmp
+*.temp
+
+# Logs
+*.log
+logs/
+
+# Package manager files (if using cargo-vendor)
+vendor/
+.cargo/config.toml
+!.cargo/config.toml.example
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Binary artifacts (platform-specific)
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Archive files (except test fixtures if committed)
+# *.rar
+# *.7z
+# *.zip
+
+# Crash reports
+crash-*.log
+core
+core.*
+
+# Profiling
+callgrind.out.*
+massif.out.*
+heaptrack.*
