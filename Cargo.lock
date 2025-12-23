@@ -735,6 +735,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
+name = "pack-recover"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "console",
+ "crossbeam-channel",
+ "glob",
+ "indicatif",
+ "num_cpus",
+ "rayon",
+ "sevenz-rust",
+ "tempfile",
+ "unrar",
+ "zip",
+]
+
+[[package]]
 name = "pbkdf2"
 version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -823,24 +841,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom 0.2.16",
-]
-
-[[package]]
-name = "rar-recover"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "console",
- "crossbeam-channel",
- "glob",
- "indicatif",
- "num_cpus",
- "rayon",
- "sevenz-rust",
- "tempfile",
- "unrar",
- "zip",
 ]
 
 [[package]]

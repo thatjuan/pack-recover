@@ -1458,17 +1458,63 @@ fn main() -> Result<()> {
                 }
                 RecoveryResult::NotEncrypted => {
                     println!("  {} Not encrypted", style("ℹ").blue());
+                    // Extract if --unpack flag is set (no password needed)
+                    if args.unpack {
+                        match extract_archive(archive_path, "", args.native) {
+                            Ok(output_dir) => {
+                                println!(
+                                    "  {} Extracted to: {}",
+                                    style("📦").cyan(),
+                                    style(output_dir.display()).green()
+                                );
+                                // Delete archive if --delete flag is set
+                                if args.delete {
+                                    match std::fs::remove_file(archive_path) {
+                                        Ok(()) => {
+                                            println!(
+                                                "  {} Deleted: {}",
+                                                style("🗑").cyan(),
+                                                style(archive_path.display()).dim()
+                                            );
+                                        }
+                                        Err(e) => {
+                                            println!(
+                                                "  {} Failed to delete archive: {}",
+                                                style("✗").red(),
+                                                style(e).red()
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                println!(
+                                    "  {} Extraction failed: {}",
+                                    style("✗").red(),
+                                    style(e).red()
+                                );
+                            }
+                        }
+                    }
                 }
                 RecoveryResult::Error(msg) => {
                     println!("  {} Error: {}", style("✗").red(), style(msg).red());
                 }
             }
         } else if args.unpack {
-            // In quiet mode, still extract if password found
-            if let RecoveryResult::Found(password) = &result {
-                if extract_archive(archive_path, password, args.native).is_ok() && args.delete {
-                    let _ = std::fs::remove_file(archive_path);
+            // In quiet mode, still extract if password found or not encrypted
+            match &result {
+                RecoveryResult::Found(password) => {
+                    if extract_archive(archive_path, password, args.native).is_ok() && args.delete {
+                        let _ = std::fs::remove_file(archive_path);
+                    }
                 }
+                RecoveryResult::NotEncrypted => {
+                    if extract_archive(archive_path, "", args.native).is_ok() && args.delete {
+                        let _ = std::fs::remove_file(archive_path);
+                    }
+                }
+                _ => {}
             }
         }
 
