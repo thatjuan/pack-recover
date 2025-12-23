@@ -1624,6 +1624,16 @@ mod tests {
     use std::io::Write;
     use tempfile::TempDir;
 
+    // Helper functions to check if CLI tools are available
+    fn has_rar_cli_tools() -> bool {
+        Command::new("lsar").arg("--version").output().is_ok()
+            && Command::new("unrar").output().is_ok()
+    }
+
+    fn has_7z_cli_tools() -> bool {
+        Command::new("7z").output().is_ok()
+    }
+
     // Helper function to create a temporary wordlist file
     fn create_test_wordlist(dir: &TempDir, passwords: &[&str]) -> PathBuf {
         let wordlist_path = dir.path().join("wordlist.txt");
@@ -2502,6 +2512,11 @@ mod tests {
     /// Test that native and non-native RAR encryption detection produce same results
     #[test]
     fn test_rar_encryption_detection_native_vs_cli() {
+        if !has_rar_cli_tools() {
+            println!("Skipping test: RAR CLI tools (lsar, unrar) not installed");
+            return;
+        }
+
         let archives_dir = test_archives_dir();
         if !archives_dir.exists() {
             println!("Skipping test: test_archives directory not found");
@@ -2554,6 +2569,11 @@ mod tests {
     /// Test that native and non-native RAR password testing produce same results
     #[test]
     fn test_rar_password_testing_native_vs_cli() {
+        if !has_rar_cli_tools() {
+            println!("Skipping test: RAR CLI tools (lsar, unrar) not installed");
+            return;
+        }
+
         let archives_dir = test_archives_dir();
         if !archives_dir.exists() {
             println!("Skipping test: test_archives directory not found");
@@ -2685,6 +2705,11 @@ mod tests {
     /// Test that native and non-native produce same final recovery results
     #[test]
     fn test_full_recovery_native_vs_cli() {
+        if !has_rar_cli_tools() {
+            println!("Skipping test: RAR CLI tools (lsar, unrar) not installed");
+            return;
+        }
+
         let archives_dir = test_archives_dir();
         if !archives_dir.exists() {
             println!("Skipping test: test_archives directory not found");
