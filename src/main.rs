@@ -414,7 +414,7 @@ fn validate_7z_password(archive_path: &PathBuf, password: &str) -> bool {
 // ============================================================================
 
 /// Detect the encryption type of a RAR archive using native library
-fn detect_rar_encryption_type_native(archive_path: &PathBuf) -> Result<EncryptionType> {
+fn detect_rar_encryption_type_native(archive_path: &Path) -> Result<EncryptionType> {
     // Try to open without password first
     let archive = RarArchive::new(archive_path.to_str().unwrap());
 
@@ -459,7 +459,7 @@ fn detect_rar_encryption_type_native(archive_path: &PathBuf) -> Result<Encryptio
 }
 
 /// Test if a password works for a RAR archive using native library
-fn test_rar_password_native(archive_path: &PathBuf, password: &str) -> bool {
+fn test_rar_password_native(archive_path: &Path, password: &str) -> bool {
     let archive = RarArchive::with_password(archive_path.to_str().unwrap(), password.as_bytes());
 
     match archive.open_for_processing() {
@@ -496,7 +496,7 @@ fn test_rar_password_native(archive_path: &PathBuf, password: &str) -> bool {
 }
 
 /// Validate RAR password using native library (same as test for native impl)
-fn validate_rar_password_native(archive_path: &PathBuf, password: &str) -> bool {
+fn validate_rar_password_native(archive_path: &Path, password: &str) -> bool {
     // For native implementation, test already does full CRC verification
     test_rar_password_native(archive_path, password)
 }
@@ -868,7 +868,7 @@ fn extract_7z_archive(archive_path: &PathBuf, password: &str, output_dir: &Path)
 
 /// Extract a RAR archive using native library
 fn extract_rar_archive_native(
-    archive_path: &PathBuf,
+    archive_path: &Path,
     password: &str,
     output_dir: &Path,
 ) -> Result<()> {
