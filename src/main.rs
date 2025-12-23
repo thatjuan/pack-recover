@@ -311,8 +311,7 @@ fn detect_7z_encryption_type(archive_path: &PathBuf) -> Result<EncryptionType> {
 
     // Archive can be listed - check if files are encrypted
     // Look for encryption indicators in the listing
-    if stdout.contains("Encrypted = +")
-        || (stdout.contains("Method =") && stdout.contains("7zAES"))
+    if stdout.contains("Encrypted = +") || (stdout.contains("Method =") && stdout.contains("7zAES"))
     {
         return Ok(EncryptionType::ContentOnly);
     }
@@ -447,7 +446,10 @@ fn detect_rar_encryption_type_native(archive_path: &PathBuf) -> Result<Encryptio
         Err(e) => {
             let error_str = format!("{:?}", e);
             // If we can't open for listing, headers might be encrypted
-            if error_str.contains("password") || error_str.contains("Password") || error_str.contains("ERAR_MISSING_PASSWORD") {
+            if error_str.contains("password")
+                || error_str.contains("Password")
+                || error_str.contains("ERAR_MISSING_PASSWORD")
+            {
                 Ok(EncryptionType::HeaderEncrypted)
             } else {
                 bail!("Cannot open archive: {} - {:?}", archive_path.display(), e)
@@ -514,7 +516,10 @@ fn detect_7z_encryption_type_native(archive_path: &PathBuf) -> Result<Encryption
             for folder in reader.archive().folders.iter() {
                 for coder in folder.coders.iter() {
                     // 7zAES method ID starts with 0x06F10701
-                    if coder.decompression_method_id().starts_with(&[0x06, 0xF1, 0x07, 0x01]) {
+                    if coder
+                        .decompression_method_id()
+                        .starts_with(&[0x06, 0xF1, 0x07, 0x01])
+                    {
                         return Ok(EncryptionType::ContentOnly);
                     }
                 }
@@ -523,7 +528,11 @@ fn detect_7z_encryption_type_native(archive_path: &PathBuf) -> Result<Encryption
         }
         Err(e) => {
             let error_str = format!("{:?}", e);
-            if error_str.contains("password") || error_str.contains("Password") || error_str.contains("encrypted") || error_str.contains("BadPassword") {
+            if error_str.contains("password")
+                || error_str.contains("Password")
+                || error_str.contains("encrypted")
+                || error_str.contains("BadPassword")
+            {
                 Ok(EncryptionType::HeaderEncrypted)
             } else {
                 // Try with empty password - if it still fails, might be header encrypted
@@ -609,10 +618,7 @@ fn detect_zip_encryption_type(archive_path: &PathBuf) -> Result<EncryptionType> 
 
     // If unzip -l works, we can list files - check if they're encrypted
     // Try to test extract without password
-    let test_output = Command::new("unzip")
-        .arg("-t")
-        .arg(archive_path)
-        .output()?;
+    let test_output = Command::new("unzip").arg("-t").arg(archive_path).output()?;
 
     let test_stdout = String::from_utf8_lossy(&test_output.stdout);
     let test_stderr = String::from_utf8_lossy(&test_output.stderr);
@@ -690,12 +696,15 @@ fn detect_zip_encryption_type_native(archive_path: &PathBuf) -> Result<Encryptio
     let file = File::open(archive_path)
         .context(format!("Cannot open archive: {}", archive_path.display()))?;
 
-    let mut archive = zip::ZipArchive::new(file)
-        .context(format!("Cannot read ZIP archive: {}", archive_path.display()))?;
+    let mut archive = zip::ZipArchive::new(file).context(format!(
+        "Cannot read ZIP archive: {}",
+        archive_path.display()
+    ))?;
 
     // Check each file entry for encryption using raw access (doesn't require password)
     for i in 0..archive.len() {
-        let file = archive.by_index_raw(i)
+        let file = archive
+            .by_index_raw(i)
             .context("Failed to read ZIP entry")?;
 
         if file.encrypted() {
@@ -792,8 +801,10 @@ fn get_extract_dir(archive_path: &Path) -> PathBuf {
 /// Extract a RAR archive using the unrar command
 fn extract_rar_archive(archive_path: &PathBuf, password: &str, output_dir: &Path) -> Result<()> {
     // Create output directory if it doesn't exist
-    std::fs::create_dir_all(output_dir)
-        .context(format!("Failed to create output directory: {}", output_dir.display()))?;
+    std::fs::create_dir_all(output_dir).context(format!(
+        "Failed to create output directory: {}",
+        output_dir.display()
+    ))?;
 
     let output = Command::new("unrar")
         .arg("x") // Extract with full paths
@@ -810,7 +821,11 @@ fn extract_rar_archive(archive_path: &PathBuf, password: &str, output_dir: &Path
         bail!(
             "Failed to extract RAR archive: {}{}",
             stderr,
-            if stderr.is_empty() { stdout.as_ref() } else { "" }
+            if stderr.is_empty() {
+                stdout.as_ref()
+            } else {
+                ""
+            }
         );
     }
 
@@ -820,8 +835,10 @@ fn extract_rar_archive(archive_path: &PathBuf, password: &str, output_dir: &Path
 /// Extract a 7zip archive using the 7z command
 fn extract_7z_archive(archive_path: &PathBuf, password: &str, output_dir: &Path) -> Result<()> {
     // Create output directory if it doesn't exist
-    std::fs::create_dir_all(output_dir)
-        .context(format!("Failed to create output directory: {}", output_dir.display()))?;
+    std::fs::create_dir_all(output_dir).context(format!(
+        "Failed to create output directory: {}",
+        output_dir.display()
+    ))?;
 
     let output = Command::new("7z")
         .arg("x") // Extract with full paths
@@ -838,7 +855,11 @@ fn extract_7z_archive(archive_path: &PathBuf, password: &str, output_dir: &Path)
         bail!(
             "Failed to extract 7z archive: {}{}",
             stderr,
-            if stderr.is_empty() { stdout.as_ref() } else { "" }
+            if stderr.is_empty() {
+                stdout.as_ref()
+            } else {
+                ""
+            }
         );
     }
 
@@ -846,10 +867,16 @@ fn extract_7z_archive(archive_path: &PathBuf, password: &str, output_dir: &Path)
 }
 
 /// Extract a RAR archive using native library
-fn extract_rar_archive_native(archive_path: &PathBuf, password: &str, output_dir: &Path) -> Result<()> {
+fn extract_rar_archive_native(
+    archive_path: &PathBuf,
+    password: &str,
+    output_dir: &Path,
+) -> Result<()> {
     // Create output directory if it doesn't exist
-    std::fs::create_dir_all(output_dir)
-        .context(format!("Failed to create output directory: {}", output_dir.display()))?;
+    std::fs::create_dir_all(output_dir).context(format!(
+        "Failed to create output directory: {}",
+        output_dir.display()
+    ))?;
 
     let archive = RarArchive::with_password(archive_path.to_str().unwrap(), password.as_bytes());
 
@@ -886,10 +913,16 @@ fn extract_rar_archive_native(archive_path: &PathBuf, password: &str, output_dir
 }
 
 /// Extract a 7zip archive using native library
-fn extract_7z_archive_native(archive_path: &PathBuf, password: &str, output_dir: &Path) -> Result<()> {
+fn extract_7z_archive_native(
+    archive_path: &PathBuf,
+    password: &str,
+    output_dir: &Path,
+) -> Result<()> {
     // Create output directory if it doesn't exist
-    std::fs::create_dir_all(output_dir)
-        .context(format!("Failed to create output directory: {}", output_dir.display()))?;
+    std::fs::create_dir_all(output_dir).context(format!(
+        "Failed to create output directory: {}",
+        output_dir.display()
+    ))?;
 
     sevenz_rust::decompress_file_with_password(archive_path, output_dir, password.into())
         .map_err(|e| anyhow::anyhow!("Failed to extract 7z archive: {:?}", e))?;
@@ -900,8 +933,10 @@ fn extract_7z_archive_native(archive_path: &PathBuf, password: &str, output_dir:
 /// Extract a ZIP archive using the unzip command
 fn extract_zip_archive(archive_path: &PathBuf, password: &str, output_dir: &Path) -> Result<()> {
     // Create output directory if it doesn't exist
-    std::fs::create_dir_all(output_dir)
-        .context(format!("Failed to create output directory: {}", output_dir.display()))?;
+    std::fs::create_dir_all(output_dir).context(format!(
+        "Failed to create output directory: {}",
+        output_dir.display()
+    ))?;
 
     let output = Command::new("unzip")
         .arg("-o") // Overwrite existing files
@@ -919,7 +954,11 @@ fn extract_zip_archive(archive_path: &PathBuf, password: &str, output_dir: &Path
         bail!(
             "Failed to extract ZIP archive: {}{}",
             stderr,
-            if stderr.is_empty() { stdout.as_ref() } else { "" }
+            if stderr.is_empty() {
+                stdout.as_ref()
+            } else {
+                ""
+            }
         );
     }
 
@@ -927,19 +966,28 @@ fn extract_zip_archive(archive_path: &PathBuf, password: &str, output_dir: &Path
 }
 
 /// Extract a ZIP archive using native library
-fn extract_zip_archive_native(archive_path: &PathBuf, password: &str, output_dir: &Path) -> Result<()> {
+fn extract_zip_archive_native(
+    archive_path: &PathBuf,
+    password: &str,
+    output_dir: &Path,
+) -> Result<()> {
     // Create output directory if it doesn't exist
-    std::fs::create_dir_all(output_dir)
-        .context(format!("Failed to create output directory: {}", output_dir.display()))?;
+    std::fs::create_dir_all(output_dir).context(format!(
+        "Failed to create output directory: {}",
+        output_dir.display()
+    ))?;
 
     let file = File::open(archive_path)
         .context(format!("Cannot open archive: {}", archive_path.display()))?;
 
-    let mut archive = zip::ZipArchive::new(file)
-        .context(format!("Cannot read ZIP archive: {}", archive_path.display()))?;
+    let mut archive = zip::ZipArchive::new(file).context(format!(
+        "Cannot read ZIP archive: {}",
+        archive_path.display()
+    ))?;
 
     for i in 0..archive.len() {
-        let mut file = archive.by_index_decrypt(i, password.as_bytes())
+        let mut file = archive
+            .by_index_decrypt(i, password.as_bytes())
             .context("Failed to read ZIP entry")?;
 
         let outpath = match file.enclosed_name() {
@@ -973,21 +1021,25 @@ fn extract_zip_archive_native(archive_path: &PathBuf, password: &str, output_dir
 }
 
 /// Extract an archive using the appropriate method based on format and mode
-fn extract_archive(
-    archive_path: &PathBuf,
-    password: &str,
-    native: bool,
-) -> Result<PathBuf> {
+fn extract_archive(archive_path: &PathBuf, password: &str, native: bool) -> Result<PathBuf> {
     let output_dir = get_extract_dir(archive_path);
     let format = detect_archive_format(archive_path)
         .ok_or_else(|| anyhow::anyhow!("Unsupported archive format"))?;
 
     match (format, native) {
-        (ArchiveFormat::Rar, true) => extract_rar_archive_native(archive_path, password, &output_dir)?,
+        (ArchiveFormat::Rar, true) => {
+            extract_rar_archive_native(archive_path, password, &output_dir)?
+        }
         (ArchiveFormat::Rar, false) => extract_rar_archive(archive_path, password, &output_dir)?,
-        (ArchiveFormat::SevenZip, true) => extract_7z_archive_native(archive_path, password, &output_dir)?,
-        (ArchiveFormat::SevenZip, false) => extract_7z_archive(archive_path, password, &output_dir)?,
-        (ArchiveFormat::Zip, true) => extract_zip_archive_native(archive_path, password, &output_dir)?,
+        (ArchiveFormat::SevenZip, true) => {
+            extract_7z_archive_native(archive_path, password, &output_dir)?
+        }
+        (ArchiveFormat::SevenZip, false) => {
+            extract_7z_archive(archive_path, password, &output_dir)?
+        }
+        (ArchiveFormat::Zip, true) => {
+            extract_zip_archive_native(archive_path, password, &output_dir)?
+        }
         (ArchiveFormat::Zip, false) => extract_zip_archive(archive_path, password, &output_dir)?,
     }
 
@@ -1019,7 +1071,8 @@ fn recover_archive_password(
             ArchiveFormat::Rar => {
                 if Command::new("lsar").arg("--version").output().is_err() {
                     return RecoveryResult::Error(
-                        "'lsar' command not found. Please install unar: brew install unar".to_string(),
+                        "'lsar' command not found. Please install unar: brew install unar"
+                            .to_string(),
                     );
                 }
                 if Command::new("unrar").output().is_err() {
@@ -1032,7 +1085,8 @@ fn recover_archive_password(
             ArchiveFormat::SevenZip => {
                 if Command::new("7z").output().is_err() {
                     return RecoveryResult::Error(
-                        "'7z' command not found. Please install p7zip: brew install p7zip".to_string(),
+                        "'7z' command not found. Please install p7zip: brew install p7zip"
+                            .to_string(),
                     );
                 }
             }
@@ -1121,11 +1175,19 @@ fn recover_archive_password(
         if test_result {
             // Validate to avoid false positives
             let valid = match (archive_format, native) {
-                (ArchiveFormat::Rar, true) => validate_rar_password_native(&archive_path_arc, password),
+                (ArchiveFormat::Rar, true) => {
+                    validate_rar_password_native(&archive_path_arc, password)
+                }
                 (ArchiveFormat::Rar, false) => validate_rar_password(&archive_path_arc, password),
-                (ArchiveFormat::SevenZip, true) => validate_7z_password_native(&archive_path_arc, password),
-                (ArchiveFormat::SevenZip, false) => validate_7z_password(&archive_path_arc, password),
-                (ArchiveFormat::Zip, true) => validate_zip_password_native(&archive_path_arc, password),
+                (ArchiveFormat::SevenZip, true) => {
+                    validate_7z_password_native(&archive_path_arc, password)
+                }
+                (ArchiveFormat::SevenZip, false) => {
+                    validate_7z_password(&archive_path_arc, password)
+                }
+                (ArchiveFormat::Zip, true) => {
+                    validate_zip_password_native(&archive_path_arc, password)
+                }
                 (ArchiveFormat::Zip, false) => validate_zip_password(&archive_path_arc, password),
             };
             if valid
@@ -1159,10 +1221,7 @@ fn clean_wordlist(input: &PathBuf, output: &PathBuf, quiet: bool) -> Result<()> 
     }
 
     if !quiet {
-        println!(
-            "{} Wordlist Cleanup Tool",
-            style("🧹").cyan()
-        );
+        println!("{} Wordlist Cleanup Tool", style("🧹").cyan());
         println!("{}", style("─".repeat(50)).dim());
         println!("  Input:  {}", style(input.display()).green());
         println!("  Output: {}", style(output.display()).green());
@@ -1246,7 +1305,11 @@ fn main() -> Result<()> {
     // Handle subcommands
     if let Some(command) = args.command {
         return match command {
-            Commands::Clean { input, output, quiet } => clean_wordlist(&input, &output, quiet),
+            Commands::Clean {
+                input,
+                output,
+                quiet,
+            } => clean_wordlist(&input, &output, quiet),
         };
     }
 
@@ -1322,11 +1385,7 @@ fn main() -> Result<()> {
             passwords = passwords.into_iter().skip(offset).collect();
             true
         } else if offset >= passwords.len() {
-            bail!(
-                "Offset {} is beyond wordlist size {}",
-                offset,
-                total_loaded
-            );
+            bail!("Offset {} is beyond wordlist size {}", offset, total_loaded);
         } else {
             false
         }
@@ -1592,10 +1651,7 @@ fn main() -> Result<()> {
 
     if !args.quiet {
         println!("{}", style("─".repeat(50)).dim());
-        println!(
-            "  Total archives:       {}",
-            style(results.len()).yellow()
-        );
+        println!("  Total archives:       {}", style(results.len()).yellow());
         println!(
             "  Passwords found:      {}",
             style(found_count).green().bold()
@@ -1834,7 +1890,10 @@ mod tests {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
 
         // Create test archive files
-        create_test_archives(&temp_dir, &["test1.rar", "test2.rar", "test3.rar", "other.7z"]);
+        create_test_archives(
+            &temp_dir,
+            &["test1.rar", "test2.rar", "test3.rar", "other.7z"],
+        );
 
         // Test glob pattern for .rar files
         let pattern = format!("{}/*.rar", temp_dir.path().display());
@@ -2089,7 +2148,10 @@ mod tests {
         let archives = create_test_archives(&temp_dir, &["test1.rar", "test2.rar", "test3.rar"]);
 
         // Simulate different results for each archive
-        results.push((archives[0].clone(), RecoveryResult::Found("pass1".to_string())));
+        results.push((
+            archives[0].clone(),
+            RecoveryResult::Found("pass1".to_string()),
+        ));
         results.push((archives[1].clone(), RecoveryResult::NotFound));
         results.push((archives[2].clone(), RecoveryResult::NotEncrypted));
 
@@ -2157,7 +2219,10 @@ mod tests {
             archives[1].clone(),
             RecoveryResult::Error("Unsupported format".to_string()),
         ));
-        results.push((archives[2].clone(), RecoveryResult::Found("pass".to_string())));
+        results.push((
+            archives[2].clone(),
+            RecoveryResult::Found("pass".to_string()),
+        ));
 
         let error_count = results
             .iter()
@@ -2583,8 +2648,14 @@ mod tests {
         // Test with various passwords - we don't know which is correct,
         // but both implementations should agree on each one
         let passwords_to_test = vec![
-            "password", "12345", "secret", "qwerty", "testpass123",
-            "wrongpassword", "badpassword", "incorrectpass",
+            "password",
+            "12345",
+            "secret",
+            "qwerty",
+            "testpass123",
+            "wrongpassword",
+            "badpassword",
+            "incorrectpass",
         ];
 
         let rar_archives = vec![
@@ -2673,8 +2744,14 @@ mod tests {
         // Test with various passwords - we don't know which is correct,
         // but both implementations should agree on each one
         let passwords_to_test = vec![
-            "password", "12345", "secret", "qwerty", "testpass123",
-            "wrongpassword", "badpassword", "incorrectpass",
+            "password",
+            "12345",
+            "secret",
+            "qwerty",
+            "testpass123",
+            "wrongpassword",
+            "badpassword",
+            "incorrectpass",
         ];
 
         let sevenz_archives = vec![
@@ -2744,8 +2821,10 @@ mod tests {
                 continue;
             }
 
-            let cli_result = recover_archive_password(&archive_path, &passwords, 1, true, false, false);
-            let native_result = recover_archive_password(&archive_path, &passwords, 1, true, false, true);
+            let cli_result =
+                recover_archive_password(&archive_path, &passwords, 1, true, false, false);
+            let native_result =
+                recover_archive_password(&archive_path, &passwords, 1, true, false, true);
 
             // Compare results
             match (&cli_result, &native_result) {
@@ -2790,8 +2869,10 @@ mod tests {
                 continue;
             }
 
-            let cli_result = recover_archive_password(&archive_path, &passwords, 1, true, false, false);
-            let native_result = recover_archive_password(&archive_path, &passwords, 1, true, false, true);
+            let cli_result =
+                recover_archive_password(&archive_path, &passwords, 1, true, false, false);
+            let native_result =
+                recover_archive_password(&archive_path, &passwords, 1, true, false, true);
 
             match (&cli_result, &native_result) {
                 (RecoveryResult::Found(cli_pass), RecoveryResult::Found(native_pass)) => {
@@ -2865,7 +2946,11 @@ mod tests {
         ]);
 
         match args.command {
-            Some(Commands::Clean { input, output, quiet }) => {
+            Some(Commands::Clean {
+                input,
+                output,
+                quiet,
+            }) => {
                 assert_eq!(input, PathBuf::from("/tmp/input.txt"));
                 assert_eq!(output, PathBuf::from("/tmp/output.txt"));
                 assert!(!quiet);
@@ -3119,14 +3204,17 @@ mod tests {
         // Test with various passwords - we don't know which is correct,
         // but both implementations should agree on each one
         let passwords_to_test = vec![
-            "password", "12345", "secret", "qwerty", "testpass123",
-            "wrongpassword", "badpassword", "incorrectpass",
+            "password",
+            "12345",
+            "secret",
+            "qwerty",
+            "testpass123",
+            "wrongpassword",
+            "badpassword",
+            "incorrectpass",
         ];
 
-        let zip_archives = vec![
-            "zip_simple_password.zip",
-            "zip_content_encrypted.zip",
-        ];
+        let zip_archives = vec!["zip_simple_password.zip", "zip_content_encrypted.zip"];
 
         for filename in zip_archives {
             let archive_path = archives_dir.join(filename);
@@ -3172,10 +3260,7 @@ mod tests {
             .collect();
 
         // Test ZIP archives
-        let zip_archives = vec![
-            "zip_simple_password.zip",
-            "zip_content_encrypted.zip",
-        ];
+        let zip_archives = vec!["zip_simple_password.zip", "zip_content_encrypted.zip"];
 
         for filename in zip_archives {
             let archive_path = archives_dir.join(filename);
@@ -3183,8 +3268,10 @@ mod tests {
                 continue;
             }
 
-            let cli_result = recover_archive_password(&archive_path, &passwords, 1, true, false, false);
-            let native_result = recover_archive_password(&archive_path, &passwords, 1, true, false, true);
+            let cli_result =
+                recover_archive_password(&archive_path, &passwords, 1, true, false, false);
+            let native_result =
+                recover_archive_password(&archive_path, &passwords, 1, true, false, true);
 
             // Compare results
             match (&cli_result, &native_result) {
@@ -3226,10 +3313,7 @@ mod tests {
             return;
         }
 
-        let zip_archives = vec![
-            "zip_simple_password.zip",
-            "zip_content_encrypted.zip",
-        ];
+        let zip_archives = vec!["zip_simple_password.zip", "zip_content_encrypted.zip"];
 
         // These passwords should definitely be wrong
         let wrong_passwords = vec![
@@ -3283,7 +3367,11 @@ mod tests {
         let native_result = detect_zip_encryption_type_native(&archive_path);
 
         assert!(cli_result.is_ok(), "CLI detection failed: {:?}", cli_result);
-        assert!(native_result.is_ok(), "Native detection failed: {:?}", native_result);
+        assert!(
+            native_result.is_ok(),
+            "Native detection failed: {:?}",
+            native_result
+        );
 
         assert_eq!(
             cli_result.unwrap(),
