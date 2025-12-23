@@ -7,6 +7,9 @@ set -e
 REPO="thatjuan/pack-recover"
 BINARY_NAME="pack-recover"
 INSTALL_DIR="/usr/local/bin"
+CARGO_BIN_DIR="$HOME/.cargo/bin"
+PATH_UPDATED=0
+UPDATED_SHELL_CONFIG=""
 
 # Colors for output
 RED='\033[0;31m'
@@ -30,6 +33,103 @@ warn() {
 error() {
     printf "${RED}[ERROR]${NC} %s\n" "$1"
     exit 1
+}
+
+# Detect the user's shell and config file
+detect_shell_config() {
+    # Get the user's default shell
+    USER_SHELL=$(basename "${SHELL:-/bin/sh}")
+
+    case "$USER_SHELL" in
+        bash)
+            # On macOS, prefer .bash_profile for login shells
+            # On Linux, prefer .bashrc
+            if [ "$(uname -s)" = "Darwin" ]; then
+                if [ -f "$HOME/.bash_profile" ]; then
+                    SHELL_CONFIG="$HOME/.bash_profile"
+                elif [ -f "$HOME/.bashrc" ]; then
+                    SHELL_CONFIG="$HOME/.bashrc"
+                else
+                    SHELL_CONFIG="$HOME/.bash_profile"
+                fi
+            else
+                if [ -f "$HOME/.bashrc" ]; then
+                    SHELL_CONFIG="$HOME/.bashrc"
+                elif [ -f "$HOME/.bash_profile" ]; then
+                    SHELL_CONFIG="$HOME/.bash_profile"
+                else
+                    SHELL_CONFIG="$HOME/.bashrc"
+                fi
+            fi
+            SHELL_NAME="Bash"
+            PATH_EXPORT_CMD="export PATH=\"\$PATH:$1\""
+            ;;
+        zsh)
+            SHELL_CONFIG="$HOME/.zshrc"
+            SHELL_NAME="Zsh"
+            PATH_EXPORT_CMD="export PATH=\"\$PATH:$1\""
+            ;;
+        fish)
+            SHELL_CONFIG="$HOME/.config/fish/config.fish"
+            SHELL_NAME="Fish"
+            PATH_EXPORT_CMD="fish_add_path $1"
+            ;;
+        *)
+            # Default to .profile for POSIX shells
+            SHELL_CONFIG="$HOME/.profile"
+            SHELL_NAME="Shell"
+            PATH_EXPORT_CMD="export PATH=\"\$PATH:$1\""
+            ;;
+    esac
+}
+
+# Check if a directory is already in PATH
+is_in_path() {
+    case ":$PATH:" in
+        *":$1:"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Add directory to PATH via shell config
+add_to_path() {
+    TARGET_DIR="$1"
+
+    # Check if already in PATH
+    if is_in_path "$TARGET_DIR"; then
+        info "$TARGET_DIR is already in PATH"
+        return 0
+    fi
+
+    # Detect shell and config file
+    detect_shell_config "$TARGET_DIR"
+
+    # Create config file if it doesn't exist
+    if [ ! -f "$SHELL_CONFIG" ]; then
+        mkdir -p "$(dirname "$SHELL_CONFIG")"
+        touch "$SHELL_CONFIG"
+    fi
+
+    # Check if we've already added this path to the config
+    if grep -q "pack-recover PATH" "$SHELL_CONFIG" 2>/dev/null; then
+        info "PATH entry already exists in $SHELL_CONFIG"
+        return 0
+    fi
+
+    info "Adding $TARGET_DIR to PATH in $SHELL_CONFIG..."
+
+    # Add PATH export to shell config
+    {
+        echo ""
+        echo "# pack-recover PATH"
+        echo "$PATH_EXPORT_CMD"
+    } >> "$SHELL_CONFIG"
+
+    success "Added $TARGET_DIR to PATH in $SHELL_CONFIG"
+
+    # Set flag to remind user to reload shell
+    PATH_UPDATED=1
+    UPDATED_SHELL_CONFIG="$SHELL_CONFIG"
 }
 
 # Detect OS and architecture
@@ -142,6 +242,9 @@ install_binary() {
     fi
 
     success "Installed $BINARY_NAME to $INSTALL_DIR/$BINARY_NAME"
+
+    # Ensure INSTALL_DIR is in PATH
+    add_to_path "$INSTALL_DIR"
 }
 
 # Install from source using cargo
@@ -156,6 +259,9 @@ install_from_source() {
     cargo install --git "https://github.com/${REPO}.git"
 
     success "Installed $BINARY_NAME via cargo"
+
+    # Ensure cargo bin directory is in PATH
+    add_to_path "$CARGO_BIN_DIR"
 }
 
 # Verify installation
@@ -166,8 +272,17 @@ verify_installation() {
         info "Version: $INSTALLED_VERSION"
         info "Run '$BINARY_NAME --help' to get started"
     else
-        warn "Binary installed but not in PATH"
-        info "Add $INSTALL_DIR to your PATH or run: $INSTALL_DIR/$BINARY_NAME"
+        if [ "$PATH_UPDATED" = "1" ]; then
+            success "Installation complete!"
+            warn "Restart your terminal or run:"
+            echo ""
+            echo "    source $UPDATED_SHELL_CONFIG"
+            echo ""
+            info "Then run '$BINARY_NAME --help' to get started"
+        else
+            warn "Binary installed but not in PATH"
+            info "Add the install directory to your PATH or run the binary directly"
+        fi
     fi
 }
 
